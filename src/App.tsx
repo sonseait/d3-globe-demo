@@ -7,8 +7,7 @@ import {
   ll2xyz,
   easeOutQuadratic,
 } from "./utils/utils";
-window.THREE = THREE;
-require("three/examples/js/controls/TrackballControls.js");
+import { TrackballControls } from "./trackball/TrackballControls";
 
 const segmentsTotal = 128;
 
@@ -18,7 +17,7 @@ export default class App extends React.PureComponent {
   private camera!: THREE.Camera;
   private scene!: THREE.Scene;
   private renderer!: THREE.Renderer;
-  private controls!: THREE.TrackballControls;
+  private controls!: TrackballControls;
   private system!: THREE.Object3D;
   private earth!: THREE.Mesh;
   private flightsPointCloudGeometry!: THREE.BufferGeometry;
@@ -37,13 +36,11 @@ export default class App extends React.PureComponent {
     this.setupFlightsPathSplines();
     this.setupFlightsPathLines();
 
-    this.system.rotation.z += (23.4 * Math.PI) / 180;
-    this.system.rotation.x = Math.PI / 5;
     this.animate();
   }
 
   private animate = () => {
-    this.earth.rotation.y += 0.002;
+    this.earth.rotation.y += 0.005;
     this.renderer.render(this.scene, this.camera);
     this.controls.update();
     this.updateFlights();
@@ -55,29 +52,26 @@ export default class App extends React.PureComponent {
     const height = this.divRef.current!.offsetHeight || window.innerHeight;
 
     var angle = 30,
-      aspect = width / height,
       near = 0.01,
       far = 100;
 
     // Fire up the WebGL renderer.
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    // this.renderer.setClearColor(0x000000, 1.0);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    (this.renderer as any).setClearColor(0x000000, 0);
     this.renderer.setSize(width, height);
-    // this.renderer.shadowMapEnabled = true;
-    // this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
     this.divRef.current!.appendChild(this.renderer.domElement);
-    window.addEventListener("resize", this.onThreeResize, false);
 
     //  Create and place the camera.
-    this.camera = new THREE.PerspectiveCamera(angle, aspect, near, far);
-    this.camera.position.z = 5;
+    this.camera = new THREE.PerspectiveCamera(angle, width / height, near, far);
+    this.camera.position.set(0, 0, 4);
 
     //  Trackball controls for panning (click/touch and drag) and zooming (mouse wheel or gestures.)
-    this.controls = new THREE.TrackballControls(
+    this.controls = new TrackballControls(
       this.camera,
       this.renderer.domElement
     );
+    this.controls.enabled = false;
     this.controls.dynamicDampingFactor = 0.2;
     this.controls.addEventListener("change", () => {
       this.renderer.render(this.scene, this.camera);
@@ -86,41 +80,21 @@ export default class App extends React.PureComponent {
     this.scene = new THREE.Scene();
   };
 
-  //Resize
-  private onThreeResize = () => {
-    const width = this.divRef.current!.offsetWidth || window.innerWidth;
-    const height = this.divRef.current!.offsetHeight || window.innerHeight;
-
-    // this.camera.aspect = width / height;
-    this.camera.updateMatrix();
-    // this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
-    // this.controls.handleResize();
-    this.renderer.render(this.scene, this.camera);
-  };
-
   // Apply lighting to the system
   private setupSystem = () => {
     this.system = new THREE.Object3D();
     this.system.name = "system";
     this.scene.add(this.system);
-
-    // Light color applied globally to make flight path visible.
-    // Darker background. Fix to this
-    this.scene.add(new THREE.AmbientLight(0x404040, 1));
   };
 
   //Mesh setup to model the Earth
   private setupEarth = (radius = 1) => {
     this.earth = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 64, 32),
+      new THREE.SphereGeometry(radius, 128, 128),
       new THREE.MeshPhongMaterial({
-        map: THREE.ImageUtils.loadTexture("earth.png"),
-        bumpMap: THREE.ImageUtils.loadTexture("earth-bump.png"),
-        bumpScale: 0.05,
-        specularMap: THREE.ImageUtils.loadTexture("earth-specular.png"),
-        specular: new THREE.Color(0xffffff),
-        shininess: 4,
+        map: THREE.ImageUtils.loadTexture("map_fill-a78643e8.png"),
+        emissive: new THREE.Color(0xd1d1d1),
+        transparent: true,
       })
     );
 
@@ -135,10 +109,8 @@ export default class App extends React.PureComponent {
   private setFlightTimes = (index: number) => {
     var flight = flights[index],
       distance = latlongDistance(flight[0], flight[1], flight[2], flight[3]),
-      startTime = Date.now() + Math.floor(Math.random() * 1000 * 20),
+      startTime = Date.now() + Math.floor(Math.random() * 1000 * 1),
       duration = Math.floor(distance * 1000 * 2);
-
-    //  Random used to give some variation.
 
     duration *= 0.8 + Math.random();
     this.flightsStartTimes[index] = startTime;
@@ -399,6 +371,6 @@ export default class App extends React.PureComponent {
   };
 
   render() {
-    return <div ref={this.divRef} />;
+    return <div style={{ height: 600 }} ref={this.divRef} />;
   }
 }

@@ -1,0 +1,8 @@
+{
+    "editor.fontFamily": "'Courier New', monospace",
+    "editor.tabSize": 2,
+    "editor.fontSize": 16,
+    "files.exclude": {
+        "**/node_modules": true
+    }
+}

@@ -11,9 +11,9 @@
     "@types/node": "^12.0.0",
     "@types/react": "^16.9.0",
     "@types/react-dom": "^16.9.0",
+    "@types/three": "0.93.31",
     "react-scripts": "3.4.1",
-    "typescript": "~3.7.2",
-    "@types/three": "0.93.31"
+    "typescript": "~3.7.2"
   },
   "scripts": {
     "start": "react-scripts start",
