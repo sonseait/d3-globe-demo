@@ -1,7 +1,9 @@
 {
-  "name": "d3-globe-demo",
+  "name": "threejs-globe",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
@@ -12,12 +14,10 @@
     "@types/react": "^16.9.0",
     "@types/react-dom": "^16.9.0",
     "@types/three": "0.93.31",
-    "react-scripts": "3.4.1",
     "typescript": "~3.7.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "tsc"
   },
   "eslintConfig": {
     "extends": "react-app"
