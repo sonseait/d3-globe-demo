@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Globe } from "threejs-globe";
+import { Globe } from "./dist";
 
 export default class App extends React.PureComponent {
   render() {
@@ -13,6 +13,9 @@ export default class App extends React.PureComponent {
             ]}
             mapImageUrl="map.png"
             arcAngle={270}
+            rotationAnimateAmount={{
+              y: -0.002,
+            }}
           />
         </div>
       </div>

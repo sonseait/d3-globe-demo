@@ -6,6 +6,7 @@ import {
   ll2xyz,
   easeOutQuadratic,
 } from "./utils/utils";
+const { TrackballControls } = require("./utils/TrackballControls");
 
 const segmentsTotal = 256;
 
@@ -16,15 +17,20 @@ interface GlobeProps {
    */
   arcAngle?: number;
   rotation?: (r: {
-    x?: number;
-    y?: number;
-    z?: number;
+    x: number;
+    y: number;
+    z: number;
   }) => {
     x?: number;
     y?: number;
     z?: number;
   };
   mapImageUrl: string;
+  rotationAnimateAmount?: {
+    x?: number;
+    y?: number;
+    z?: number;
+  };
 }
 
 export class Globe extends React.PureComponent<GlobeProps> {
@@ -33,7 +39,7 @@ export class Globe extends React.PureComponent<GlobeProps> {
   private camera!: THREE.Camera;
   private scene!: THREE.Scene;
   private renderer!: THREE.Renderer;
-  // private controls!: THREE.TrackballControls;
+  private controls!: THREE.TrackballControls;
   private system!: THREE.Object3D;
   private earth!: THREE.Mesh;
   private flightsPointCloudGeometry!: THREE.BufferGeometry;
@@ -56,9 +62,19 @@ export class Globe extends React.PureComponent<GlobeProps> {
   }
 
   private animate = () => {
-    this.earth.rotation.y -= 0.005;
+    if (this.props.rotationAnimateAmount) {
+      if (this.props.rotationAnimateAmount.x) {
+        this.earth.rotation.x += this.props.rotationAnimateAmount.x;
+      }
+      if (this.props.rotationAnimateAmount.y) {
+        this.earth.rotation.y += this.props.rotationAnimateAmount.y;
+      }
+      if (this.props.rotationAnimateAmount.z) {
+        this.earth.rotation.z += this.props.rotationAnimateAmount.z;
+      }
+    }
     this.renderer.render(this.scene, this.camera);
-    // this.controls.update();
+    this.controls.update();
     this.updateFlights();
     requestAnimationFrame(this.animate);
   };
@@ -81,15 +97,14 @@ export class Globe extends React.PureComponent<GlobeProps> {
     this.camera.position.set(0, 0, 4);
 
     // Trackball controls for panning (click/touch and drag) and zooming (mouse wheel or gestures.)
-    // this.controls = new TrackballControls(
-    //   this.camera,
-    //   this.renderer.domElement
-    // );
-    // this.controls.enabled = false;
-    // this.controls.dynamicDampingFactor = 0.2;
-    // this.controls.addEventListener("change", () => {
-    //   this.renderer.render(this.scene, this.camera);
-    // });
+    this.controls = new TrackballControls(
+      this.camera,
+      this.renderer.domElement
+    );
+    this.controls.noZoom = true;
+    this.controls.addEventListener("change", () => {
+      this.renderer.render(this.scene, this.camera);
+    });
 
     this.scene = new THREE.Scene();
   };
