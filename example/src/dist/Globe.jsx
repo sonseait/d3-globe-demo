@@ -5,16 +5,21 @@ import {
   latlongTween,
   ll2xyz,
   easeOutQuadratic,
+  createGradientGeometry,
 } from "./utils/utils";
 const { TrackballControls } = require("./utils/TrackballControls");
-const segmentsTotal = 256;
+
+const TOTAL_SEGMENT = 64;
+const START_POINT = 0.007;
+const END_POINT = 0.993;
+
 export class Globe extends React.PureComponent {
   constructor() {
     super(...arguments);
     this.divRef = React.createRef();
     this.flightsPathSplines = [];
     this.segments = new Float32Array(
-      this.props.lines.length * 3 * 2 * segmentsTotal
+      this.props.lines.length * 3 * 2 * TOTAL_SEGMENT
     );
     this.points = [];
     this.flightsStartTimes = [];
@@ -86,9 +91,9 @@ export class Globe extends React.PureComponent {
       this.scene.add(this.system);
     };
     //Mesh setup to model the Earth
-    this.setupEarth = (radius = 1) => {
+    this.setupEarth = () => {
       this.earth = new THREE.Mesh(
-        new THREE.SphereGeometry(radius, 128, 128),
+        new THREE.SphereGeometry(1, 64, 64),
         new THREE.MeshPhongMaterial({
           map: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
           emissive: new THREE.Color(0xd1d1d1),
@@ -111,7 +116,7 @@ export class Globe extends React.PureComponent {
     };
     // Compute skeletons of our flight paths.
     // We can then extrapolate more detailed flight path geometry later.
-    this.setupFlightsPathSplines = (radius = 1) => {
+    this.setupFlightsPathSplines = () => {
       var f,
         originLatitude,
         originLongitude,
@@ -119,7 +124,6 @@ export class Globe extends React.PureComponent {
         destinationLongitude,
         distance,
         altitudeMax,
-        pointsTotal,
         points,
         pointLL,
         pointXYZ,
@@ -139,27 +143,25 @@ export class Globe extends React.PureComponent {
           destinationLatitude,
           destinationLongitude
         );
-        altitudeMax = 0.02 + distance * 0.1;
+        altitudeMax = distance * 0.07;
         // We’re about to plot the path of this flight
         // using X number of points to generate a smooth-ish curve.
-        pointsTotal = 256;
         points = [];
-        for (p = 0; p < pointsTotal + 1; p++) {
+        for (p = 0; p < TOTAL_SEGMENT * 2 + 1; p++) {
           // Is our path shooting straight up? 0 degrees or straight down? 180 degree
           // Maybe in between
-          arcAngle = (p * (this.props.arcAngle || 270)) / pointsTotal;
+          arcAngle = (p * 180) / (TOTAL_SEGMENT * 2);
           // The radius is intended to be Earth’s radius.
           // Then we build a sine curve on top of that
           // with its max amplitude being ‘altitudeMax’.
-          arcRadius =
-            radius + Math.sin((arcAngle * Math.PI) / 180) * altitudeMax;
+          arcRadius = 1 + Math.sin((arcAngle * Math.PI) / 180) * altitudeMax;
           // So at this point in the flight (p) where are we between origin and destination?
           pointLL = latlongTween(
             originLatitude,
             originLongitude,
             destinationLatitude,
             destinationLongitude,
-            p / pointsTotal
+            p / (TOTAL_SEGMENT * 2)
           );
           // Ok. Now we know where (in latitude / longitude)
           // our flight is supposed to be at point ‘p’
@@ -184,35 +186,38 @@ export class Globe extends React.PureComponent {
     // The opposite is true when you zoom in.
     this.setupFlightsPathLines = () => {
       this.flightsPointCloudGeometry = new THREE.BufferGeometry();
+      const colors = new Float32Array(
+        this.props.lines.length * 3 * 2 * TOTAL_SEGMENT
+      );
+      const color = new THREE.Color();
       var material = new THREE.LineBasicMaterial({
-          color: 0xffffff,
-          vertexColors: THREE.VertexColors,
-          transparent: true,
-          linewidth: 2,
-        }),
-        segmentBeginsAt,
-        segmentEndsAt,
-        colors = new Float32Array(
-          this.props.lines.length * 3 * 2 * segmentsTotal
-        ),
-        color = new THREE.Color(),
-        index,
-        beginsAtNormal,
-        endsAtNormal;
+        color: 0xffffff,
+        vertexColors: THREE.VertexColors,
+      });
       //   Calculate where segment starts and ends.
       //   Color is set accordingly
-      for (let f = 0; f < this.props.lines.length; f++) {
-        for (let s = 0; s < segmentsTotal; s++) {
-          index = (f * segmentsTotal + s) * 6;
-          beginsAtNormal = s / (segmentsTotal - 1);
-          endsAtNormal = (s + 1) / (segmentsTotal - 1);
+      for (
+        let flightIndex = 0;
+        flightIndex < this.props.lines.length;
+        flightIndex++
+      ) {
+        for (
+          let segmentIndex = 0;
+          segmentIndex < TOTAL_SEGMENT;
+          segmentIndex++
+        ) {
+          const index = (flightIndex * TOTAL_SEGMENT + segmentIndex) * 6;
+          const beginsAtNormal = segmentIndex / (TOTAL_SEGMENT - 1);
+          const endsAtNormal = (segmentIndex + 1) / (TOTAL_SEGMENT - 1);
           // Begin this line segment.
-          segmentBeginsAt = this.flightsPathSplines[f].getPoint(0);
+          const segmentBeginsAt = this.flightsPathSplines[flightIndex].getPoint(
+            0
+          );
           this.segments[index + 0] = segmentBeginsAt.x;
           this.segments[index + 1] = segmentBeginsAt.y;
           this.segments[index + 2] = segmentBeginsAt.z;
           color.setHSL(
-            ((this.props.lines[f][1] + 100) % 360) / 360,
+            ((this.props.lines[flightIndex][1] + 100) % 360) / 360,
             1,
             0.3 + beginsAtNormal * 0.2
           );
@@ -220,12 +225,14 @@ export class Globe extends React.PureComponent {
           colors[index + 1] = color.g;
           colors[index + 2] = color.b;
           // End this line segment.
-          segmentEndsAt = this.flightsPathSplines[f].getPoint(0);
+          const segmentEndsAt = this.flightsPathSplines[flightIndex].getPoint(
+            0
+          );
           this.segments[index + 3] = segmentEndsAt.x;
           this.segments[index + 4] = segmentEndsAt.y;
           this.segments[index + 5] = segmentEndsAt.z;
           color.setHSL(
-            ((this.props.lines[f][1] + 100) % 360) / 360,
+            ((this.props.lines[flightIndex][1] + 100) % 360) / 360,
             1,
             0.3 + endsAtNormal * 0.2
           );
@@ -233,31 +240,27 @@ export class Globe extends React.PureComponent {
           colors[index + 4] = color.g;
           colors[index + 5] = color.b;
         }
-        const point1Value = this.flightsPathSplines[f].getPoint(0);
-        const point1 = new THREE.LineSegments(
-          new THREE.EdgesGeometry(new THREE.CircleGeometry(0.01, 64)),
-          new THREE.LineBasicMaterial({
-            transparent: true,
-            opacity: 0.5,
-            color: 0xffffff,
-            linewidth: 1.5,
-          })
+        const point1Value = this.flightsPathSplines[flightIndex].getPoint(0);
+        const point1 = new THREE.Mesh(
+          new THREE.SphereGeometry(0.003, 15, 15),
+          createGradientGeometry(
+            new THREE.Color(0xda4453),
+            new THREE.Color(0x89216b)
+          )
         );
         point1.position.set(point1Value.x, point1Value.y, point1Value.z);
-        point1.rotation.x = THREE.Math.degToRad(130);
-        const point2Value = this.flightsPathSplines[f].getPoint(1);
-        const point2 = new THREE.LineSegments(
-          new THREE.EdgesGeometry(new THREE.CircleGeometry(0.01, 64)),
-          new THREE.LineBasicMaterial({
-            transparent: true,
-            opacity: 0.5,
-            color: 0xffffff,
-            linewidth: 1.5,
-          })
+        this.points.push(point1);
+
+        const point2Value = this.flightsPathSplines[flightIndex].getPoint(1);
+        const point2 = new THREE.Mesh(
+          new THREE.SphereGeometry(0.003, 15, 15),
+          createGradientGeometry(
+            new THREE.Color(0x00b4db),
+            new THREE.Color(0x0083b0)
+          )
         );
         point2.position.set(point2Value.x, point2Value.y, point2Value.z);
-        point2.rotation.x = THREE.Math.degToRad(130);
-        this.points.push([point1, point2]);
+        this.points.push(point2);
       }
       this.flightsPointCloudGeometry.addAttribute(
         "position",
@@ -275,8 +278,7 @@ export class Globe extends React.PureComponent {
       );
       this.earth.add(flightsPathLines);
       this.points.forEach((point) => {
-        this.earth.add(point[0]);
-        this.earth.add(point[1]);
+        this.earth.add(point);
       });
     };
     this.updateFlights = () => {
@@ -297,27 +299,27 @@ export class Globe extends React.PureComponent {
           let isReverse =
             Date.now() - this.flightsStartTimes[f] >
             this.flightsEndTimes[f] - this.flightsStartTimes[f];
-          for (s = segmentsTotal - 1; s >= 0; s--) {
-            index = (f * segmentsTotal + s) * 6;
+          for (s = TOTAL_SEGMENT - 1; s >= 0; s--) {
+            index = (f * TOTAL_SEGMENT + s) * 6;
             let beginsAtNormal;
             let endsAtNormal;
             if (isReverse) {
-              beginsAtNormal = 1 - easedValue + s / (segmentsTotal - 1);
-              endsAtNormal = 1 - easedValue + (s - 1) / (segmentsTotal - 1);
+              beginsAtNormal = 1 - easedValue + s / (TOTAL_SEGMENT - 1);
+              endsAtNormal = 1 - easedValue + (s - 1) / (TOTAL_SEGMENT - 1);
             } else {
-              beginsAtNormal = easedValue - s / (segmentsTotal - 1);
-              endsAtNormal = easedValue - (s - 1) / (segmentsTotal - 1);
+              beginsAtNormal = easedValue - s / (TOTAL_SEGMENT - 1);
+              endsAtNormal = easedValue - (s - 1) / (TOTAL_SEGMENT - 1);
             }
             // Begin this line segment.
             segmentBeginsAt = this.flightsPathSplines[f].getPoint(
-              Math.min(Math.max(beginsAtNormal, 0), 1)
+              Math.min(Math.max(beginsAtNormal, START_POINT), END_POINT)
             );
             this.segments[index + 0] = segmentBeginsAt.x;
             this.segments[index + 1] = segmentBeginsAt.y;
             this.segments[index + 2] = segmentBeginsAt.z;
             // End this line segment.
             segmentEndsAt = this.flightsPathSplines[f].getPoint(
-              Math.min(Math.max(endsAtNormal, 0), 1)
+              Math.min(Math.max(endsAtNormal, START_POINT), END_POINT)
             );
             this.segments[index + 3] = segmentEndsAt.x;
             this.segments[index + 4] = segmentEndsAt.y;
