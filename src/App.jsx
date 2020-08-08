@@ -4,7 +4,7 @@ import { Globe } from "./dist";
 export default class App extends React.PureComponent {
   render() {
     return (
-      <div className="blur_bottom" style={{ height: 400, overflow: "hidden" }}>
+      <div className="blur_bottom" style={{ height: 440, overflow: "hidden" }}>
         <div style={{ height: 600 }}>
           <Globe
             lines={[

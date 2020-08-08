@@ -41,6 +41,7 @@ export class Globe extends React.PureComponent {
       this.updateFlights();
       requestAnimationFrame(this.animate);
     };
+
     this.setupThree = () => {
       const width = this.divRef.current.offsetWidth || window.innerWidth;
       var angle = 30,
@@ -53,12 +54,7 @@ export class Globe extends React.PureComponent {
       this.renderer.setSize(width, width);
       this.divRef.current.appendChild(this.renderer.domElement);
       // Create and place the camera.
-      this.camera = new THREE.PerspectiveCamera(
-        angle,
-        width / width,
-        near,
-        far
-      );
+      this.camera = new THREE.PerspectiveCamera(angle, 1, near, far);
       this.camera.position.set(0, 0, 4);
       this.camera.updateProjectionMatrix();
       // Trackball controls for panning (click/touch and drag) and zooming (mouse wheel or gestures.)
@@ -67,6 +63,7 @@ export class Globe extends React.PureComponent {
         this.renderer.domElement
       );
       this.controls.noZoom = true;
+      this.controls.noPan = true;
       this.controls.addEventListener("change", () => {
         this.renderer.render(this.scene, this.camera);
       });
@@ -185,7 +182,7 @@ export class Globe extends React.PureComponent {
     // the sum of the parts rather than the individual bits.
     // The opposite is true when you zoom in.
     this.setupFlightsPathLines = () => {
-      this.flightsPointCloudGeometry = new THREE.BufferGeometry();
+      this.flightsLineGeometry = new THREE.BufferGeometry();
       const colors = new Float32Array(
         this.props.lines.length * 3 * 2 * TOTAL_SEGMENT
       );
@@ -262,17 +259,17 @@ export class Globe extends React.PureComponent {
         point2.position.set(point2Value.x, point2Value.y, point2Value.z);
         this.points.push(point2);
       }
-      this.flightsPointCloudGeometry.addAttribute(
+      this.flightsLineGeometry.addAttribute(
         "position",
         new THREE.BufferAttribute(this.segments, 3)
       );
-      this.flightsPointCloudGeometry.addAttribute(
+      this.flightsLineGeometry.addAttribute(
         "color",
         new THREE.BufferAttribute(colors, 3)
       );
       // Pack into the global varaible which is added to the scene later
       const flightsPathLines = new THREE.Line(
-        this.flightsPointCloudGeometry,
+        this.flightsLineGeometry,
         material,
         THREE.LinePieces
       );
@@ -327,8 +324,8 @@ export class Globe extends React.PureComponent {
           }
         }
       }
-      this.flightsPointCloudGeometry.computeBoundingSphere();
-      this.flightsPointCloudGeometry.attributes.position.needsUpdate = true;
+      this.flightsLineGeometry.computeBoundingSphere();
+      this.flightsLineGeometry.attributes.position.needsUpdate = true;
     };
   }
   componentDidMount() {
