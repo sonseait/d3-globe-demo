@@ -53,6 +53,8 @@ export class Globe extends React.PureComponent {
       this.renderer.clearDepth();
       this.renderer.setSize(width, width);
       this.divRef.current.appendChild(this.renderer.domElement);
+      window.addEventListener("resize", this.onThreeResize, false);
+
       // Create and place the camera.
       this.camera = new THREE.PerspectiveCamera(angle, 1, near, far);
       this.camera.position.set(0, 0, 4);
@@ -69,6 +71,14 @@ export class Globe extends React.PureComponent {
       });
       this.scene = new THREE.Scene();
     };
+
+    this.onThreeResize = () => {
+      const width = this.divRef.current.offsetWidth || window.innerWidth;
+      this.renderer.setSize(width, width);
+      this.controls.handleResize();
+      this.renderer.render(this.scene, this.camera);
+    };
+
     // Apply lighting to the system
     this.setupSystem = () => {
       this.system = new THREE.Object3D();
