@@ -15,7 +15,7 @@ export default class App extends React.PureComponent {
               [38.2844, 90.3383, 70.2844, 135.532],
               [55.2844, 338.3383, 45.2844, 60.3383],
             ]}
-            mapImageUrl="map.png"
+            mapImageUrl="map1.png"
             rotationAnimateAmount={{
               y: -0.002,
             }}

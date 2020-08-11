@@ -102,8 +102,10 @@ export class Globe extends React.PureComponent {
       this.earth = new THREE.Mesh(
         new THREE.SphereGeometry(1, 64, 64),
         new THREE.MeshPhongMaterial({
-          map: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
-          emissive: new THREE.Color(0xd1d1d1),
+          // map: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
+          emissiveMap: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
+          emissive: new THREE.Color(0xf8f9fa),
+          // color: new THREE.Color(0xd1d1d1),
         })
       );
       this.earth.name = "earth";
