@@ -57,7 +57,7 @@ export class Globe extends React.PureComponent {
 
       // Create and place the camera.
       this.camera = new THREE.PerspectiveCamera(angle, 1, near, far);
-      this.camera.position.set(0, 0, 4);
+      this.camera.position.set(0, 0, 4.3);
       this.camera.updateProjectionMatrix();
       // Trackball controls for panning (click/touch and drag) and zooming (mouse wheel or gestures.)
       this.controls = new TrackballControls(
