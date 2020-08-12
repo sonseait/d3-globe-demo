@@ -39,7 +39,7 @@ export class Globe extends React.PureComponent {
       this.renderer.render(this.scene, this.camera);
       this.controls.update();
       this.updateFlights();
-      requestAnimationFrame(this.animate);
+      this.requester = requestAnimationFrame(this.animate);
     };
 
     this.setupThree = () => {
@@ -280,8 +280,8 @@ export class Globe extends React.PureComponent {
       });
       const flightsPathLines = new THREE.LineSegments(
         this.flightsLineGeometry,
-        this.linesMaterial,
-      )
+        this.linesMaterial
+      );
       this.earth.add(flightsPathLines);
       this.points.forEach((point) => {
         this.earth.add(point);
@@ -354,6 +354,9 @@ export class Globe extends React.PureComponent {
     this.controls.dispose();
     this.renderer.renderLists.dispose();
     try {
+      if (this.requester) {
+        cancelAnimationFrame(this.requester);
+      }
       this.renderer.dispose();
     } catch {}
   }
