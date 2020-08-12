@@ -99,15 +99,14 @@ export class Globe extends React.PureComponent {
     };
     //Mesh setup to model the Earth
     this.setupEarth = () => {
-      this.earth = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 64, 64),
-        new THREE.MeshPhongMaterial({
-          // map: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
-          emissiveMap: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
-          emissive: new THREE.Color(0xf8f9fa),
-          // color: new THREE.Color(0xd1d1d1),
-        })
-      );
+      this.earthGeometry = new THREE.SphereGeometry(1, 64, 64);
+      this.earthMaterial = new THREE.MeshPhongMaterial({
+        // map: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
+        emissiveMap: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
+        emissive: new THREE.Color(0xf8f9fa),
+        // color: new THREE.Color(0xd1d1d1),
+      });
+      this.earth = new THREE.Mesh(this.earthGeometry, this.earthMaterial);
       this.earth.name = "earth";
       this.earth.castShadow = true;
       this.earth.receiveShadow = false;
@@ -195,14 +194,11 @@ export class Globe extends React.PureComponent {
     // The opposite is true when you zoom in.
     this.setupFlightsPathLines = () => {
       this.flightsLineGeometry = new THREE.BufferGeometry();
+      this.pointGeometry = new THREE.SphereGeometry(0.003, 15, 15);
       const colors = new Float32Array(
         this.props.lines.length * 3 * 2 * TOTAL_SEGMENT
       );
       const color = new THREE.Color();
-      var material = new THREE.LineBasicMaterial({
-        color: 0xffffff,
-        vertexColors: THREE.VertexColors,
-      });
       //   Calculate where segment starts and ends.
       //   Color is set accordingly
       for (
@@ -251,7 +247,7 @@ export class Globe extends React.PureComponent {
         }
         const point1Value = this.flightsPathSplines[flightIndex].getPoint(0);
         const point1 = new THREE.Mesh(
-          new THREE.SphereGeometry(0.003, 15, 15),
+          this.pointGeometry,
           createGradientGeometry(
             new THREE.Color(0xda4453),
             new THREE.Color(0x89216b)
@@ -262,7 +258,7 @@ export class Globe extends React.PureComponent {
 
         const point2Value = this.flightsPathSplines[flightIndex].getPoint(1);
         const point2 = new THREE.Mesh(
-          new THREE.SphereGeometry(0.003, 15, 15),
+          this.pointGeometry,
           createGradientGeometry(
             new THREE.Color(0x00b4db),
             new THREE.Color(0x0083b0)
@@ -280,9 +276,13 @@ export class Globe extends React.PureComponent {
         new THREE.BufferAttribute(colors, 3)
       );
       // Pack into the global varaible which is added to the scene later
+      this.linesMaterial = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        vertexColors: THREE.VertexColors,
+      });
       const flightsPathLines = new THREE.Line(
         this.flightsLineGeometry,
-        material,
+        this.linesMaterial,
         THREE.LinePieces
       );
       this.earth.add(flightsPathLines);
@@ -347,6 +347,18 @@ export class Globe extends React.PureComponent {
     this.setupFlightsPathSplines();
     this.setupFlightsPathLines();
     this.animate();
+  }
+  componentWillUnmount() {
+    this.flightsLineGeometry.dispose();
+    this.pointGeometry.dispose();
+    this.earthMaterial.dispose();
+    this.linesMaterial.dispose();
+    window.removeEventListener("resize", this.onThreeResize);
+    this.controls.dispose();
+    this.renderer.renderLists.dispose();
+    try {
+      this.renderer.dispose();
+    } catch {}
   }
   render() {
     return <div ref={this.divRef} />;
