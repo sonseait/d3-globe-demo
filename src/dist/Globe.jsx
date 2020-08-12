@@ -101,10 +101,8 @@ export class Globe extends React.PureComponent {
     this.setupEarth = () => {
       this.earthGeometry = new THREE.SphereGeometry(1, 64, 64);
       this.earthMaterial = new THREE.MeshPhongMaterial({
-        // map: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
-        emissiveMap: THREE.ImageUtils.loadTexture(this.props.mapImageUrl),
+        emissiveMap: new THREE.TextureLoader().load(this.props.mapImageUrl),
         emissive: new THREE.Color(0xf8f9fa),
-        // color: new THREE.Color(0xd1d1d1),
       });
       this.earth = new THREE.Mesh(this.earthGeometry, this.earthMaterial);
       this.earth.name = "earth";
@@ -267,11 +265,11 @@ export class Globe extends React.PureComponent {
         point2.position.set(point2Value.x, point2Value.y, point2Value.z);
         this.points.push(point2);
       }
-      this.flightsLineGeometry.addAttribute(
+      this.flightsLineGeometry.setAttribute(
         "position",
         new THREE.BufferAttribute(this.segments, 3)
       );
-      this.flightsLineGeometry.addAttribute(
+      this.flightsLineGeometry.setAttribute(
         "color",
         new THREE.BufferAttribute(colors, 3)
       );
@@ -280,11 +278,10 @@ export class Globe extends React.PureComponent {
         color: 0xffffff,
         vertexColors: THREE.VertexColors,
       });
-      const flightsPathLines = new THREE.Line(
+      const flightsPathLines = new THREE.LineSegments(
         this.flightsLineGeometry,
         this.linesMaterial,
-        THREE.LinePieces
-      );
+      )
       this.earth.add(flightsPathLines);
       this.points.forEach((point) => {
         this.earth.add(point);
